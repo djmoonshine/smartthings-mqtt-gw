@@ -79,6 +79,7 @@ def send_ha_mqtt_discovery(device_id, name):
     }
     print("Publishing " + str(msg).replace("'", '"'))
     client.publish("homeassistant/climate/" + device_id + "/config", str(msg).replace("'", '"'))
+    last_discovery_time = time.time()
 
 
 def set_temp_callback(client, userdata, message):
@@ -158,10 +159,13 @@ client.on_connect = on_connect
 print("Connecting to broker")
 client.connect(mqtt_address, port=1883, keepalive=60, bind_address="")
 last_time = 0
+last_discovery_time = 0
 while True:
     client.loop_start()
     if time.time() - last_time > 30:
         send_state()
         last_time = time.time()
+    if time.time() - last_discovery_time > 1800:
+        send_ha_mqtt_discovery(device,"Luftvarmepump")
     time.sleep(10)
     client.loop_stop()
