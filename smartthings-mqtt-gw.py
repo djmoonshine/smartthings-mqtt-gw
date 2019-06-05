@@ -79,7 +79,6 @@ def send_ha_mqtt_discovery(device_id, name):
     }
     print("Publishing " + str(msg).replace("'", '"'))
     client.publish("homeassistant/climate/" + device_id + "/config", str(msg).replace("'", '"'))
-    last_discovery_time = time.time()
 
 
 def set_temp_callback(client, userdata, message):
@@ -109,7 +108,6 @@ def on_connect(clientt, userdata, flags, rc):
         client.message_callback_add("homeassistant/climate/" + device + "/setTemp", set_temp_callback)
         client.subscribe("homeassistant/climate/" + device + "/setMode")
         client.message_callback_add("homeassistant/climate/" + device + "/setMode", set_mode_callback)
-        client.publish("homeassistant/climate/" + device + "/available", "online")
         send_state()
 
 
@@ -127,6 +125,7 @@ def send_state():
         power = jsonpath.jsonpath(json2, '$.components.main.switch.switch.value')[0]
         energy_used = jsonpath.jsonpath(json2, '$.components.main.powerConsumptionReport.powerConsumption.value.persistedEnergy')[0]
         energy_used = energy_used / 1000
+        print(time.time())
         print("Mode " + mode)
         print("Target temp " + str(target_temp))
         print("Measured temp " + str(measured_temp))
@@ -137,6 +136,7 @@ def send_state():
             "target_temp":target_temp,
             "current_temp":measured_temp,
         }
+        client.publish("homeassistant/climate/" + device + "/available", "online")
         client.publish("homeassistant/climate/" + device + "/state/mode", mode)
         client.publish("homeassistant/climate/" + device + "/state/target_temp", str(target_temp))
         client.publish("homeassistant/climate/" + device + "/state/measured_temp", str(measured_temp))
@@ -159,7 +159,7 @@ client.on_connect = on_connect
 print("Connecting to broker")
 client.connect(mqtt_address, port=1883, keepalive=60, bind_address="")
 last_time = 0
-last_discovery_time = 0
+last_discovery_time = time.time()
 while True:
     client.loop_start()
     if time.time() - last_time > 30:
@@ -167,5 +167,6 @@ while True:
         last_time = time.time()
     if time.time() - last_discovery_time > 1800:
         send_ha_mqtt_discovery(device,"Luftvarmepump")
+        last_discovery_time = time.time()
     time.sleep(10)
     client.loop_stop()
