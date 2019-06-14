@@ -86,7 +86,7 @@ def set_temp_callback(client, userdata, message):
     temp = round(float(message.payload))
     print("Setting temperature to: " + str(temp))
     set_temperature(token,device,int(temp))
-    time.sleep(3)
+    time.sleep(5)
     send_state()
 
 
@@ -113,18 +113,21 @@ def on_connect(clientt, userdata, flags, rc):
 
 def send_state():
     status = get_status(token, device)
-    # print(status)
+    print(status)
     # print(jp.match1('$.components.main.airConditionerMode.airConditionerMode.value', status))
     # print(jp.match1('$.components', status))
     if status != "":
+        try:
+            json2 = json.loads(status)
+            mode = jsonpath.jsonpath(json2, '$.components.main.airConditionerMode.airConditionerMode.value')[0]
+            target_temp = jsonpath.jsonpath(json2, '$.components.main.thermostatCoolingSetpoint.coolingSetpoint.value')[0]
+            measured_temp = jsonpath.jsonpath(json2, '$.components.main.temperatureMeasurement.temperature.value')[0]
+            power = jsonpath.jsonpath(json2, '$.components.main.switch.switch.value')[0]
+            energy_used = jsonpath.jsonpath(json2, '$.components.main.powerConsumptionReport.powerConsumption.value.persistedEnergy')[0]
+            energy_used = energy_used / 1000
+        except:
+            print("Error parsing json response")
 
-        json2 = json.loads(status)
-        mode = jsonpath.jsonpath(json2, '$.components.main.airConditionerMode.airConditionerMode.value')[0]
-        target_temp = jsonpath.jsonpath(json2, '$.components.main.thermostatCoolingSetpoint.coolingSetpoint.value')[0]
-        measured_temp = jsonpath.jsonpath(json2, '$.components.main.temperatureMeasurement.temperature.value')[0]
-        power = jsonpath.jsonpath(json2, '$.components.main.switch.switch.value')[0]
-        energy_used = jsonpath.jsonpath(json2, '$.components.main.powerConsumptionReport.powerConsumption.value.persistedEnergy')[0]
-        energy_used = energy_used / 1000
         print(time.time())
         print("Mode " + mode)
         print("Target temp " + str(target_temp))
