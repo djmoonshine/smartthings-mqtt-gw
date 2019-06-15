@@ -127,6 +127,7 @@ def send_state():
             energy_used = energy_used / 1000
         except:
             print("Error parsing json response")
+            return
 
         print(time.time())
         print("Mode " + mode)
