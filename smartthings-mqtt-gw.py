@@ -4,6 +4,8 @@ import jsonpath
 import json
 import time
 
+power = "off"
+
 
 def get_status(auth_token, device_id):
     headers = {
@@ -41,7 +43,36 @@ def set_temperature(auth_token, device_id, temp):
     print("Http status response " + str(response.status_code))
 
 
+def turn_onoff(auth_token, device_id, newmode):
+    if power == "off" and newmode != "off":
+        newstate = "on"
+    else:
+        newstate = "off"
+
+    print("Turning " + newstate + " device")
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + auth_token,
+    }
+    data = {"commands": [{
+        "component": "main",
+        "capability": "switch",
+        "command": newstate,
+        "arguments": [
+         ]}]}
+    url = "https://api.smartthings.com/v1/devices/" + device_id + "/commands"
+    try:
+        response = requests.post(url, json=data, headers=headers)
+    except:
+        print("Error communicating with api!")
+    print(response.status_code)
+
+
 def set_mode(auth_token, device_id, mode):
+
+    if power == "off" or mode == "off":
+        turn_onoff(auth_token, device_id, mode)
+
     headers = {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + auth_token,
@@ -75,7 +106,7 @@ def send_ha_mqtt_discovery(device_id, name):
         "min_temp": "15",
         "max_temp": "25",
         "temp_step": "1",
-        "modes": ["heat", "cool"]
+        "modes": ["off", "heat", "cool"]
     }
     print("Publishing " + str(msg).replace("'", '"'))
     client.publish("homeassistant/climate/" + device_id + "/config", str(msg).replace("'", '"'))
@@ -126,7 +157,7 @@ def send_state():
             energy_used = jsonpath.jsonpath(json2, '$.components.main.powerConsumptionReport.powerConsumption.value.persistedEnergy')[0]
             energy_used = energy_used / 1000
         except:
-            print("Error parsing json response")
+            print("Error parsing json response in send_state")
             return
 
         print(time.time())
@@ -135,6 +166,10 @@ def send_state():
         print("Measured temp " + str(measured_temp))
         print("Power " + power)
         print("Total energy used " + str(energy_used) + "kWh")
+
+        if power == "off":
+            mode = "off"
+
         state = {
             "mode":mode,
             "target_temp":target_temp,
